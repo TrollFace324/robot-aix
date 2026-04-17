@@ -396,7 +396,8 @@ function App() {
   const servoDropdownRef = useRef<HTMLDivElement | null>(null);
   const telemetryDropdownRef = useRef<HTMLDivElement | null>(null);
   const telemetryBoomSlotDropdownRef = useRef<HTMLDivElement | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioElementsRef = useRef<HTMLAudioElement[]>([]);
+  const audioElementIndexRef = useRef(0);
   const requestInFlightRef = useRef(false);
   const sendSlaveRequestRef = useRef<
     | ((
@@ -463,54 +464,6 @@ function App() {
     window.addEventListener("resize", updateScale);
     return () => {
       window.removeEventListener("resize", updateScale);
-    };
-  }, []);
-
-  useEffect(() => {
-    const AudioContextCtor = window.AudioContext;
-    if (!AudioContextCtor) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) {
-        return;
-      }
-
-      audioContextRef.current ??= new AudioContextCtor();
-      const context = audioContextRef.current;
-
-      if (context.state === "suspended") {
-        void context.resume();
-      }
-
-      const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-
-      oscillator.type = "square";
-      oscillator.frequency.setValueAtTime(1350, now);
-      oscillator.frequency.exponentialRampToValueAtTime(760, now + 0.022);
-
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.075, now + 0.002);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.032);
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown, {
-      passive: true,
-    });
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      if (audioContextRef.current) {
-        void audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
     };
   }, []);
 
@@ -723,6 +676,35 @@ function App() {
     }
   };
 
+  const playButtonSound = () => {
+    if (!audioElementsRef.current || audioElementsRef.current.length === 0) {
+      return;
+    }
+
+    try {
+      // Получаем следующий audio элемент по очереди
+      const audioElement = audioElementsRef.current[audioElementIndexRef.current];
+      audioElementIndexRef.current =
+        (audioElementIndexRef.current + 1) % audioElementsRef.current.length;
+
+      if (!audioElement) {
+        return;
+      }
+
+      // Сбрасываем позицию и воспроизводим
+      audioElement.currentTime = 0;
+      const playPromise = audioElement.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.debug("Failed to play button sound:", err);
+        });
+      }
+    } catch (error) {
+      console.debug("Failed to play button sound:", error);
+    }
+  };
+
   const sendSlaveRequest = async (
     requestId: string,
     options: SendSlaveRequestOptions = {},
@@ -746,6 +728,11 @@ function App() {
     requestInFlightRef.current = true;
     if (isKranAction) {
       setIsKranBusy(true);
+    }
+
+    // Play button sound on any button click (except auto requests)
+    if (!isAutoRequest) {
+      playButtonSound();
     }
 
     if (!isAutoRequest && !isSilent) {
@@ -2028,6 +2015,19 @@ function App() {
 
   return (
     <div className="app-shell">
+      {[0, 1, 2, 3].map((index) => (
+        <audio
+          key={index}
+          ref={(el) => {
+            if (el) {
+              audioElementsRef.current[index] = el;
+            }
+          }}
+          src="/sounds/discord-notification.mp3"
+          preload="auto"
+          style={{ display: "none" }}
+        />
+      ))}
       <div className="app-background" aria-hidden="true">
         <img
           className="app-background__image"
