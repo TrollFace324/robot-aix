@@ -1964,48 +1964,6 @@ function App() {
     if (activeTab === "label") {
       return (
         <div className="status-panel__main">
-          <div
-            className="status-card glass-panel"
-            aria-label="Резервная вкладка"
-          >
-            <h1 className="status-card__title">Резервная вкладка</h1>
-            <ul className="status-card__list">
-              <li className="status-card__item">
-                <span className="status-card__dot" aria-hidden="true" />
-                <span>
-                  Кнопка этой вкладки тоже отправляет свой id на slave
-                </span>
-              </li>
-              <li className="status-card__item">
-                <span className="status-card__dot" aria-hidden="true" />
-                <span>
-                  Fullscreen-кнопка в правом верхнем углу запросы не отправляет
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="status-card glass-panel" aria-label="Последний обмен">
-            <h1 className="status-card__title">Последний обмен</h1>
-            <ul className="status-card__list">
-              <li className="status-card__item">
-                <span className="status-card__dot" aria-hidden="true" />
-                <span>
-                  {lastRequestId
-                    ? `Последний id: ${lastRequestId}`
-                    : "Запросов пока не было"}
-                </span>
-              </li>
-              <li className="status-card__item">
-                <span className="status-card__dot" aria-hidden="true" />
-                <span>
-                  {lastSlaveResponse
-                    ? `Ответ slave: ${lastSlaveResponse}`
-                    : "Ответ от slave пока не получен"}
-                </span>
-              </li>
-            </ul>
-          </div>
         </div>
       );
     }
